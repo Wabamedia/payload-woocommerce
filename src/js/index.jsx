@@ -19,7 +19,7 @@ const label =
 	window.wp.i18n.__( 'Credit/Debit Card', 'payload' );
 
 const PaymentMethodFields = () => {
-	const [ cardInvalidMessage, setCardInvalidMessage ] = useState();
+	const [ cardInvalidMessage, setCabrdInvalidMessage ] = useState();
 	const [ nameInvalidMessage, setNameInvalidMessage ] = useState();
 
 	return (

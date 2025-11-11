@@ -74,15 +74,27 @@ function get_payload_customer_id() {
 		$payload_customer_id = get_user_meta( $user->ID, 'payload_customer_id', true );
 
 		if ( ! $payload_customer_id && $user->user_email && $user->user_nicename ) {
-			$customer = Payload\Customer::create(
+
+			// Check Payload for existing customer with this email
+			$existing_customers = Payload\Customer::all(
 				array(
 					'email' => $user->user_email,
-					'name'  => $user->user_nicename,
-					'attrs' => array(
-						'_wp_user_id' => $user->ID,
-					),
 				)
 			);
+			if ( count( $existing_customers->data ) > 0 ) {
+				$customer = $existing_customers->data[0];
+			} else {
+					// Create new Payload customer
+				$customer = Payload\Customer::create(
+					array(
+						'email' => $user->user_email,
+						'name'  => $user->user_nicename,
+						'attrs' => array(
+							'_wp_user_id' => $user->ID,
+						),
+					)
+				);
+			}
 
 				$payload_customer_id = $customer->id;
 
