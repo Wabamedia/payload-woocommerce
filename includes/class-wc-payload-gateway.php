@@ -89,7 +89,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		// Update subscription payment method
-		if ( wcs_is_subscription( $order_id ) ) {
+		if (function_exists("wcs_is_subsciption") && wcs_is_subscription( $order_id ) ) {
 
 			if ( ! $_POST['payment_method_id'] ) {
 				throw new Exception( 'Missing payment method details' );
@@ -171,7 +171,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			$order->set_transaction_id( $payment->ref_number );
 
 			// Create and set token if subscription
-			if ( WC_Subscriptions_Order::order_contains_subscription( $order_id ) ) {
+			if ( function_exists("WC_Subscriptions_Order") && WC_Subscriptions_Order::order_contains_subscription( $order_id ) ) {
 				$token = $this->create_token( $payment->payment_method );
 				$order->add_payment_token( $token );
 			}
