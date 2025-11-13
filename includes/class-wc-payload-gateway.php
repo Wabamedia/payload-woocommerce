@@ -88,6 +88,8 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
+		error_log(print_r($_POST,true)); // For debugging
+
 		// Update subscription payment method
 		if (function_exists("wcs_is_subsciption") && wcs_is_subscription( $order_id ) ) {
 
@@ -157,12 +159,17 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 				throw new Exception( 'Mismatched Amount' );
 			}
 
-			$payment->update( array( 'status' => 'processed' ) );
+			
+			
 
 			if ( ! $payment->customer_id ) {
 				$payload_customer_id = get_payload_customer_id();
 				if ( $payload_customer_id ) {
+					if($payment->description==""){
+						$payment->update( array( 'description' => 'Payment for order #' . $order_id." for Product: ".$this->get_order_product_name($order_id) ,'customer_id' => $payload_customer_id ));
+					}else{
 					$payment->update( array( 'customer_id' => $payload_customer_id ) );
+				}
 					$payment_method = Payload\PaymentMethod::get( $payment->payment_method_id );
 					$payment_method->update( array( 'account_id' => $payload_customer_id ) );
 				}
@@ -177,9 +184,10 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			}
 		}
 
-		// Mark the order as processed
-		$order->payment_complete();
-		$order->save();
+		if($payment->status == 'processed'){
+				$order->payment_complete();
+				$order->save();
+			}
 
 		// Redirect to the thank you page
 		return array(
@@ -256,13 +264,14 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 	}
 
 	public function create_payment_for_order( $order, $amount, $payment_method_id ) {
+		$order_id =  $order->get_id();
 		$payment = Payload\Transaction::create(
 			array(
-				'description'       => 'Payment for order #' . $order->get_id(),
+				'description'       =>  'Payment for order #' . $order_id." for Product: ".$this->get_order_product_name($order_id),
 				'amount'            => $amount,
 				'type'              => 'payment',
 				'payment_method_id' => $payment_method_id,
-				'order_number'      => strval( $order->get_id() ),
+				'order_number'      => strval( $order_id),
 			)
 		);
 
@@ -287,5 +296,23 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		$pm->update( array( 'attrs' => array( '_wp_token_id' => $token->get_id() ) ) );
 
 		return $token;
+	}
+
+	public function is_virtual($product_id){
+		$product = wc_get_product( $product_id );
+		if($product->is_virtual()){
+			return true;
+		return false
+	}
+	public function get_order_product_name($order_id){
+		$order = wc_get_order( $order_id );
+		$items = $order->get_items();
+		$product_names = array();
+
+		foreach ( $items as $item ) {
+			$product_names[] = $item->get_name();
+		}
+
+		return implode( ', ', $product_names );
 	}
 }
