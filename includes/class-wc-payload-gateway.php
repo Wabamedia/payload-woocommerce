@@ -333,18 +333,5 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		return implode( ', ', $product_names );
 	}
 
-	private function __testpayloadgateway() {
-		$order_id=51;
-			setup_payload_api();
-		$transaction =  Payload\Transaction::get("txn_3f11yDaZsf3XDuLHiPMJd");
-		$tran_array =  array(
-				'description'       =>  'Payment for order #' . $order_id." for Product: ".$this->get_order_product_name($order_id),
-		);
-		$transaction->update($tran_array);
-		die(print_r($transaction,true));
-	//	 print_r($transaction);
-	//	wp_log("Payload Gateway Test");
-	//	die();
-	//	return "payload gateway test";
-	}
+
 }
