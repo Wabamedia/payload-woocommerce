@@ -160,7 +160,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 				//throw new Exception( 'Mismatched Amount' );
 			}
 
-				$payment->update( array( 'description' => 'Payment for order #' . $order_id." for Product: ".$this->get_order_product_name($order_id) ,'customer_id' => $payload_customer_id ));
+				$payment->update( array( 'description' => 'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id) ,'customer_id' => $payload_customer_id ));
 			
 			
 
