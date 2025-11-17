@@ -333,5 +333,4 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		return implode( ', ', $product_names );
 	}
 
-
 }
