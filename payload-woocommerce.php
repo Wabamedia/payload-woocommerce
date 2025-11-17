@@ -161,6 +161,10 @@ function setup_payload_api() {
 add_filter( 'woocommerce_subscription_payment_method_to_display', 'payload_subscription_payment_method_to_display', 10, 3 );
 
 function payload_subscription_payment_method_to_display( $label, $subscription, $context ) {
+
 	$parent_order = wc_get_order( $subscription->get_parent_id() );
+	if($parent_order){
 	return $parent_order->get_payment_method_title();
+	}
+	return "No Payment Method available at this time.";
 }

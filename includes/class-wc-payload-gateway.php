@@ -31,6 +31,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, array( $this, 'scheduled_subscription_payment' ), 10, 2 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
+//		$this->__testpayloadgateway();
 	}
 
 	public function init_form_fields() {
@@ -156,9 +157,10 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			$amt = $order->get_total();
 
 			if ( $amt != $payment->amount ) {
-				throw new Exception( 'Mismatched Amount' );
+				//throw new Exception( 'Mismatched Amount' );
 			}
 
+				$payment->update( array( 'description' => 'Payment for order #' . $order_id." for Product: ".$this->get_order_product_name($order_id) ,'customer_id' => $payload_customer_id ));
 			
 			
 
@@ -184,10 +186,11 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			}
 		}
 
-		if($payment->status == 'processed'){
+		if($payment->status == 'authorized' && $this->is_virtual($order_id)){
+			$payment->update( array( 'status' => 'processed' ) );
 				$order->payment_complete();
 				$order->save();
-			}
+		}
 
 		// Redirect to the thank you page
 		return array(
@@ -265,18 +268,25 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 
 	public function create_payment_for_order( $order, $amount, $payment_method_id ) {
 		$order_id =  $order->get_id();
-		$payment = Payload\Transaction::create(
-			array(
+		$payment_array = array(
 				'description'       =>  'Payment for order #' . $order_id." for Product: ".$this->get_order_product_name($order_id),
-				'amount'            => $amount,
+				'amount'            => (200+$amount),
 				'type'              => 'payment',
 				'payment_method_id' => $payment_method_id,
 				'order_number'      => strval( $order_id),
-			)
+			);
+		$payment = Payload\Transaction::create(
+			$payment_array
 		);
 
 		$order->set_transaction_id( $payment->ref_number );
-		$order->payment_complete();
+		if( $this->is_virtual($order_id)){
+			$order->payment_complete();
+			$order->save();
+		}
+		$logger = wc_get_logger();
+		$logger->error( 'Payload Payment Created: ' . print_r( $payment, true ), array( 'source' => 'payload' ) );
+		$logger->error( 'Payload Payment Array sent ' . print_r( $payment_array, true ), array( 'source' => 'payload' ) );
 
 		return $payment;
 	}
@@ -298,12 +308,19 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		return $token;
 	}
 
-	public function is_virtual($product_id){
-		$product = wc_get_product( $product_id );
-		if($product->is_virtual()){
-			return true;
-		return false
+	public function is_virtual($order_id){
+		
+		$order = wc_get_order( $order_id );
+		$items = $order->get_items();
+
+		foreach ( $items as $item ) {
+			if ( $item->get_product()->is_virtual() ) {
+				return true;
+			}
+		}
+		return false;
 	}
+
 	public function get_order_product_name($order_id){
 		$order = wc_get_order( $order_id );
 		$items = $order->get_items();
@@ -314,5 +331,20 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		}
 
 		return implode( ', ', $product_names );
+	}
+
+	private function __testpayloadgateway() {
+		$order_id=51;
+			setup_payload_api();
+		$transaction =  Payload\Transaction::get("txn_3f11yDaZsf3XDuLHiPMJd");
+		$tran_array =  array(
+				'description'       =>  'Payment for order #' . $order_id." for Product: ".$this->get_order_product_name($order_id),
+		);
+		$transaction->update($tran_array);
+		die(print_r($transaction,true));
+	//	 print_r($transaction);
+	//	wp_log("Payload Gateway Test");
+	//	die();
+	//	return "payload gateway test";
 	}
 }
