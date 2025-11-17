@@ -1,0 +1,65 @@
+name: Auto Fill PR Description
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  fill-description:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install GitHub CLI
+        run: |
+          type -p gh >/dev/null || {
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt-get update
+            sudo apt-get install gh -y
+          }
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build description from commits and update PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          REPO=${{ github.repository }}
+
+          # Get current PR body
+          BODY=$(gh api repos/$REPO/pulls/$PR_NUMBER --jq '.body')
+
+          # If body is not null/empty, do nothing
+          if [ -n "$BODY" ] && [ "$BODY" != "null" ]; then
+            echo "PR already has a description. Skipping."
+            exit 0
+          fi
+
+          echo "PR has no description. Building one from commits..."
+
+          # Get commits for this PR and format as bullet list
+          COMMITS=$(gh api repos/$REPO/pulls/$PR_NUMBER/commits --jq '.[].commit.message')
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits found for this PR. Skipping."
+            exit 0
+          fi
+
+          DESCRIPTION="## Changes in this PR\n\n"
+
+          while IFS= read -r line; do
+            # Skip empty lines
+            [ -z "$line" ] && continue
+            DESCRIPTION+="- $line\n"
+          done <<< "$COMMITS"
+
+          echo -e "New description will be:\n$DESCRIPTION"
+
+          # Update the PR body
+          gh api \
+            --method PATCH \
+            repos/$REPO/pulls/$PR_NUMBER \
+            -f body="$DESCRIPTION"
