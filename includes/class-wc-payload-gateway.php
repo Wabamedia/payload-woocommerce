@@ -105,7 +105,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			$parent_order = wc_get_order( $order->get_parent_id() );
 
 			$this->update_subscription_order_payment_method( $parent_order, $token, $payment_method );
-
+		
 			if ( $_POST['update_all_subscriptions_payment_method'] == '1' ) {
 				// Update all subscriptions to the new payment method if selected
 				$subscriptions = wcs_get_users_subscriptions( get_current_user_id() );
@@ -186,8 +186,10 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			}
 		}
 
-		if($payment->status == 'authorized' && $this->is_virtual($order_id)){
-			$payment->update( array( 'status' => 'processed' ) );
+		//S	$payment->update( array( 'status' => 'processed' ) );	
+
+		if($payment->status_code == 'approved' && $this->is_virtual($order_id)){
+			$payment->update( array( 'status' => 'process	ed' ) );
 				$order->payment_complete();
 				$order->save();
 		}
@@ -283,6 +285,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		if( $this->is_virtual($order_id)){
 			$order->payment_complete();
 			$order->save();
+			$payment->update( array( 'status' => 'processed' ) );
 		}
 		$logger = wc_get_logger();
 		$logger->error( 'Payload Payment Created: ' . print_r( $payment, true ), array( 'source' => 'payload' ) );
@@ -291,7 +294,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		return $payment;
 	}
 
-	public function create_token( $payment_method ) {
+	public function create_token( $payment_method,$set_current_user=null ) {
 		$token = new WC_Payment_Token_CC();
 		$token->set_token( $payment_method['id'] );
 		$token->set_gateway_id( $this->id );
@@ -299,7 +302,12 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		$token->set_last4( substr( $payment_method['card']['card_number'], -4 ) );
 		$token->set_expiry_month( substr( $payment_method['card']['expiry'], 0, 2 ) );
 		$token->set_expiry_year( substr( $payment_method['card']['expiry'], -4 ) );
-		$token->set_user_id( get_current_user_id() );
+		if($set_current_user){
+			//We create this flag just incase Admin is changing payment method for a user
+			$token->set_user_id( $set_current_user );
+		}else{
+			$token->set_user_id( get_current_user_id() );
+		}
 		$token->save();
 
 		$pm = new Payload\PaymentMethod( array( 'id' => $payment_method['id'] ) );
@@ -331,6 +339,49 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		}
 
 		return implode( ', ', $product_names );
+	}
+
+	public function get_order_customer_id($order_id){
+		$order = wc_get_order( $order_id );
+		return $order->get_customer_id();
+	}
+
+	public function set_payload_customer_id($order){
+			$payload_customer_id = $order->get_meta( 'payload_customer_id', true );
+
+			if ( ! $payload_customer_id ) {
+				$parent_token_id = $order->get_payment_method();
+				if ( $parent_token_id ) {
+					$parent_token = WC_Payment_Tokens::get( $parent_token_id );
+					if ( $parent_token ) {
+						$parent_pm_id = $parent_token->get_token();
+						if ( $parent_pm_id ) {
+							try {
+								$parent_payment_method = Payload\PaymentMethod::get( $parent_pm_id );
+								if ( ! empty( $parent_payment_method->account_id ) ) {
+									$payload_customer_id = $parent_payment_method->account_id;
+								}
+							} catch ( Exception $e ) {
+								// ignore if Payload lookup fails
+							}
+						}
+					}
+				}
+			}
+
+			if ( $payload_customer_id ) {
+				$order->update_meta_data( 'payload_customer_id', $payload_customer_id );
+				$order->save();
+
+				// Ensure the newly provided payment method is associated with that customer in Payload
+				if ( isset( $payment_method ) && $payment_method && empty( $payment_method->account_id ) ) {
+					try {
+						$payment_method->update( array( 'account_id' => $payload_customer_id ) );
+					} catch ( Exception $e ) {
+						// ignore update errors
+					}
+				}
+			}
 	}
 
 }
