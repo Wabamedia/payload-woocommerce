@@ -65,6 +65,29 @@ function payload_register_order_approval_payment_method_type() {
 		}
 	);
 }
+// Auto-complete orders with only virtual/downloadable products
+add_action( 'woocommerce_payment_complete', function( $order_id ) {
+
+    $order = wc_get_order( $order_id );
+
+    // Check if ALL items are virtual or downloadable
+    $virtual_order = true;
+
+    foreach ( $order->get_items() as $item ) {
+        $product = $item->get_product();
+
+        if ( ! $product->is_virtual() && ! $product->is_downloadable() ) {
+            $virtual_order = false;
+            break;
+        }
+    }
+
+    // Auto-complete the order
+    if ( $virtual_order ) {
+        $order->update_status( 'completed', 'Order auto-completed because it contains only virtual products.' );
+    }
+
+});
 
 function get_payload_customer_id() {
 	$payload_customer_id = null;
@@ -76,12 +99,12 @@ function get_payload_customer_id() {
 		if ( ! $payload_customer_id && $user->user_email && $user->user_nicename ) {
 
 			// Check Payload for existing customer with this email
-			$existing_customers = Payload\Customer::all(
+			$existing_customers = Payload\Customer::filter_by(
 				array(
 					'email' => $user->user_email,
 				)
 			);
-			if ( count( $existing_customers->data ) > 0 ) {
+			if ( isset( $existing_customers->data )) {
 				$customer = $existing_customers->data[0];
 			} else {
 					// Create new Payload customer
