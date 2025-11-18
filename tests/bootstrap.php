@@ -20,8 +20,6 @@ if (getenv('WP_TESTS_DIR')) {
 
 // Mock WooCommerce classes
 require_once __DIR__ . '/mocks/woocommerce-mocks.php';
-require dirname( __DIR__ ) . '/wp-content/plugins/woocommerce/woocommerce.php';
-
 
 // Load plugin files
 require_once dirname(__DIR__) . '/payload-woocommerce.php';
