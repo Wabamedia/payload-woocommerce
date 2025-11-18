@@ -4,20 +4,24 @@ on:
   pull_request:
     types: [opened, synchronize]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   fill-description:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install GitHub CLI
+      - name: Ensure GitHub CLI is available (optional)
         run: |
-          type -p gh >/dev/null || {
+          if ! type -p gh >/dev/null; then
             curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
             sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
             sudo apt-get update
             sudo apt-get install gh -y
-          }
+          fi
 
       - name: Check out repository
         uses: actions/checkout@v4
