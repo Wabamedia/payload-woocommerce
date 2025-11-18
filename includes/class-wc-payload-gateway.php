@@ -89,7 +89,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
-		$get_user_id_from_order = $this->get_order_customer_id($order_id);	
+		$get_user_id_from_order = $this->get_order_customer_id($order);	
 
 		// Update subscription payment method
 		if (function_exists("wcs_is_subsciption") && wcs_is_subscription( $order_id ) ) {
@@ -377,10 +377,10 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		return implode( ', ', $product_names );
 	}
 
-	public function get_order_customer_id($order_id){
-		$order = wc_get_order( $order_id );
-		return $order->get_customer_id();
-	}
+	// public function get_order_customer_id($order_id){
+	// 	$order = wc_get_order( $order_id );
+	// 	return $order->get_customer_id();
+	// }
 
 	public function set_customer_id_by_order($order){
 			$payload_customer_id = $order->get_meta( 'payload_customer_id', true );
@@ -420,5 +420,25 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			}
 			return $order->get_user_id();
 	}
+
+	    protected function get_order_customer_id( $order ) {
+        if ( is_callable( array( $order, 'get_customer_id' ) ) ) {
+            // Newer WooCommerce (3+)
+            return (int) $order->get_customer_id();
+        }
+
+        if ( is_callable( array( $order, 'get_user_id' ) ) ) {
+            // Older WooCommerce
+            return (int) $order->get_user_id();
+        }
+
+        // Fallback for really old style or weird mocks
+        if ( isset( $order->customer_user ) ) {
+            return (int) $order->customer_user;
+        }
+
+        return 0;
+    }
+
 
 }
