@@ -100,10 +100,9 @@ function get_payload_customer_id() {
 
 			// Check Payload for existing customer with this email
 			$existing_customers = Payload\Customer::filter_by(
-				array(
-					'email' => $user->user_email,
-				)
-			);
+    pl::attr()->email->eq($user->user_email)
+);
+
 			if ( isset( $existing_customers->data )) {
 				$customer = $existing_customers->data[0];
 			} else {

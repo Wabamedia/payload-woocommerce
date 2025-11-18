@@ -3,6 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use Brain\Monkey;
 use Mockery;
+use Payload\API as pl;
 
 class Test_WC_Payload_Gateway extends TestCase {
 
@@ -17,7 +18,9 @@ class Test_WC_Payload_Gateway extends TestCase {
         $_GET = array();
         
         $this->gateway = new WC_Payload_Gateway();
+
     }
+
 
     protected function tearDown(): void {
         Monkey\tearDown();

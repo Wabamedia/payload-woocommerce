@@ -186,7 +186,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 
 		//S	$payment->update( array( 'status' => 'processed' ) );	
 
-		if($payment->status_code == 'approved' ){
+		if(isset($payment->status_code ) && $payment->status_code == 'approved' ){
 			$payment->update( array( 'status' => 'processed', "description"=> 'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id) ) );
 	
 				$order->payment_complete();
@@ -308,10 +308,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 				// Check if token already exists for this user
 				$user_id = $set_current_user ? $set_current_user : get_current_user_id();
 
-				$existing_tokens = WC_Payment_Tokens::get_tokens( array(
-					'user_id'    => $user_id,
-					'gateway_id' => $this->id,
-				) );
+				$existing_tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, $this->id );
 
 				foreach ( $existing_tokens as $existing_token ) {
 					// Exact payload payment method id match
@@ -367,14 +364,17 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 
 	public function get_order_product_name($order_id){
 		$order = wc_get_order( $order_id );
-		$items = $order->get_items();
-		$product_names = array();
+		if(isset($order->get_items)){
+				$items = $order->get_items();
+				$product_names = array();
 
-		foreach ( $items as $item ) {
-			$product_names[] = $item->get_name();
-		}
+				foreach ( $items as $item ) {
+					$product_names[] = $item->get_name();
+				}
 
-		return implode( ', ', $product_names );
+				return implode( ', ', $product_names );
+			}
+	return "";
 	}
 
 	// public function get_order_customer_id($order_id){
