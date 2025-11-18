@@ -28,6 +28,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		$this->init_form_fields();
 		$this->init_settings();
 
+
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, array( $this, 'scheduled_subscription_payment' ), 10, 2 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
@@ -305,42 +306,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		}else{
 			$token->set_user_id( get_current_user_id() );
 		}
-				// Check if token already exists for this user
-				$user_id = $set_current_user ? $set_current_user : get_current_user_id();
 
-				$existing_tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, $this->id );
-
-				foreach ( $existing_tokens as $existing_token ) {
-					// Exact payload payment method id match
-					if ( $existing_token->get_token() === $payment_method['id'] ) {
-						try {
-							$pm = new Payload\PaymentMethod( array( 'id' => $payment_method['id'] ) );
-							$pm->update( array( 'attrs' => array( '_wp_token_id' => $existing_token->get_id() ) ) );
-						} catch ( Exception $e ) {
-							// ignore
-						}
-						return $existing_token;
-					}
-
-					// Fallback: match by card details (brand + last4 + expiry)
-					$pm_last4 = substr( $payment_method['card']['card_number'], -4 );
-					$pm_month = substr( $payment_method['card']['expiry'], 0, 2 );
-					$pm_year  = substr( $payment_method['card']['expiry'], -4 );
-
-					if ( $existing_token->get_last4() === $pm_last4
-						&& (string) $existing_token->get_expiry_month() === (string) $pm_month
-						&& (string) $existing_token->get_expiry_year() === (string) $pm_year
-						&& strtolower( $existing_token->get_card_type() ) === strtolower( $payment_method['card']['card_brand'] )
-					) {
-						try {
-							$pm = new Payload\PaymentMethod( array( 'id' => $payment_method['id'] ) );
-							$pm->update( array( 'attrs' => array( '_wp_token_id' => $existing_token->get_id() ) ) );
-						} catch ( Exception $e ) {
-							// ignore
-						}
-						return $existing_token;
-					}
-				}
 		$token->save();
 
 		$pm = new Payload\PaymentMethod( array( 'id' => $payment_method['id'] ) );

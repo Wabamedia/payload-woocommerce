@@ -99,24 +99,27 @@ function get_payload_customer_id() {
 		if ( ! $payload_customer_id && $user->user_email && $user->user_nicename ) {
 
 			// Check Payload for existing customer with this email
-			$existing_customers = Payload\Customer::filter_by(
-    pl::attr()->email->eq($user->user_email)
-);
+			 if ( is_callable( [ Payload\Custome::class, 'filter_by' ] ) && class_exists( pl::class ) ) {
+        $query = Payload\Customer::filter_by(
+            pl::attr()->email->eq( $user->user_email )
+        );
 
-			if ( isset( $existing_customers->data )) {
-				$customer = $existing_customers->data[0];
-			} else {
-					// Create new Payload customer
-				$customer = Payload\Customer::create(
-					array(
-						'email' => $user->user_email,
-						'name'  => $user->user_nicename,
-						'attrs' => array(
-							'_wp_user_id' => $user->ID,
-						),
-					)
-				);
+        if ( is_object( $query ) && method_exists( $query, 'first' ) ) {
+            $customer = $query->first();
+        }
 			}
+			else {
+							// Create new Payload customer
+						$customer = Payload\Customer::create(
+							array(
+								'email' => $user->user_email,
+								'name'  => $user->user_nicename,
+								'attrs' => array(
+									'_wp_user_id' => $user->ID,
+								),
+							)
+						);
+					}
 
 				$payload_customer_id = $customer->id;
 
