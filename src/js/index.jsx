@@ -9,6 +9,7 @@ import {
 } from 'payload-react';
 
 import '../css/style.scss';
+/* global MutationObserver */
 
 const { registerPaymentMethod } = window.wc.wcBlocksRegistry;
 const { getSetting } = window.wc.wcSettings;
@@ -19,8 +20,8 @@ const label =
 	window.wp.i18n.__( 'Credit/Debit Card', 'payload' );
 
 const PaymentMethodFields = () => {
-	const [ cardInvalidMessage, setCardInvalidMessage ] = useState();
 	const [ nameInvalidMessage, setNameInvalidMessage ] = useState();
+	const [ cardInvalidMessage, setCardInvalidMessage ] = useState();
 
 	return (
 		<div className="pl-form-container">
@@ -254,14 +255,70 @@ const mountPaymentMethodForm = () => {
 	}
 };
 
-window.plMountPaymentMethodForm = () => {
-	if ( document.readyState === 'complete' ) {
+// Lazy + safe mount for the payment method form
+window.plMountPaymentMethodForm = ( () => {
+	const TARGET_SELECTOR = '#payload-add-payment-method'; // Adjust this selector as needed
+	let mounted = false;
+	let attempted = false;
+
+	const tryMount = () => {
+		if ( mounted ) {
+			return true;
+		}
+
+		const container = document.querySelector( TARGET_SELECTOR );
+		if ( ! container ) {
+			return false;
+		}
+
+		// If your mount function accepts a container, pass it in:
+		// mountPaymentMethodForm(container);
 		mountPaymentMethodForm();
-	} else {
-		document.addEventListener( 'DOMContentLoaded', function () {
-			mountPaymentMethodForm();
+
+		mounted = true;
+		return true;
+	};
+
+	const lazyInit = () => {
+		if ( attempted ) {
+			return;
+		}
+		attempted = true;
+
+		// 1) Try immediately (DOM might already be ready)
+		if ( tryMount() ) {
+			return;
+		}
+
+		// 2) Observe DOM changes for late-inserted form
+		const observer = new MutationObserver( () => {
+			if ( tryMount() ) {
+				observer.disconnect();
+			}
 		} );
-	}
-};
+
+		observer.observe( document.documentElement, {
+			childList: true,
+			subtree: true,
+		} );
+
+		// 3) Fallback timeout so we don't observe forever
+		setTimeout( () => {
+			observer.disconnect();
+		}, 15000 ); // 15s safety cap
+	};
+
+	return () => {
+		if ( document.readyState === 'loading' ) {
+			// DOM not ready yet → wait for it, then run lazy init
+			document.addEventListener( 'DOMContentLoaded', lazyInit, {
+				once: true,
+			} );
+		} else {
+			// DOM is already ready → start lazy init now
+			lazyInit();
+		}
+	};
+} )();
 
 window.plMountPaymentMethodForm();

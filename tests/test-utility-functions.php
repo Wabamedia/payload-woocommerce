@@ -13,7 +13,7 @@ class Test_Utility_Functions extends TestCase {
         // Reset global state
         $_POST = array();
         $_GET = array();
-    }
+         }
 
     protected function tearDown(): void {
         Monkey\tearDown();

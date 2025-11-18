@@ -65,6 +65,29 @@ function payload_register_order_approval_payment_method_type() {
 		}
 	);
 }
+// Auto-complete orders with only virtual/downloadable products
+add_action( 'woocommerce_payment_complete', function( $order_id ) {
+
+    $order = wc_get_order( $order_id );
+
+    // Check if ALL items are virtual or downloadable
+    $virtual_order = true;
+
+    foreach ( $order->get_items() as $item ) {
+        $product = $item->get_product();
+
+        if ( ! $product->is_virtual() && ! $product->is_downloadable() ) {
+            $virtual_order = false;
+            break;
+        }
+    }
+
+    // Auto-complete the order
+    if ( $virtual_order ) {
+        $order->update_status( 'completed', 'Order auto-completed because it contains only virtual products.' );
+    }
+
+});
 
 function get_payload_customer_id() {
 	$payload_customer_id = null;
@@ -74,15 +97,29 @@ function get_payload_customer_id() {
 		$payload_customer_id = get_user_meta( $user->ID, 'payload_customer_id', true );
 
 		if ( ! $payload_customer_id && $user->user_email && $user->user_nicename ) {
-			$customer = Payload\Customer::create(
-				array(
-					'email' => $user->user_email,
-					'name'  => $user->user_nicename,
-					'attrs' => array(
-						'_wp_user_id' => $user->ID,
-					),
-				)
-			);
+
+			// Check Payload for existing customer with this email
+			 if ( is_callable( [ Payload\Custome::class, 'filter_by' ] ) && class_exists( pl::class ) ) {
+        $query = Payload\Customer::filter_by(
+            pl::attr()->email->eq( $user->user_email )
+        );
+
+        if ( is_object( $query ) && method_exists( $query, 'first' ) ) {
+            $customer = $query->first();
+        }
+			}
+			else {
+							// Create new Payload customer
+						$customer = Payload\Customer::create(
+							array(
+								'email' => $user->user_email,
+								'name'  => $user->user_nicename,
+								'attrs' => array(
+									'_wp_user_id' => $user->ID,
+								),
+							)
+						);
+					}
 
 				$payload_customer_id = $customer->id;
 
@@ -149,6 +186,10 @@ function setup_payload_api() {
 add_filter( 'woocommerce_subscription_payment_method_to_display', 'payload_subscription_payment_method_to_display', 10, 3 );
 
 function payload_subscription_payment_method_to_display( $label, $subscription, $context ) {
+
 	$parent_order = wc_get_order( $subscription->get_parent_id() );
+	if($parent_order){
 	return $parent_order->get_payment_method_title();
+	}
+	return "No Payment Method available at this time.";
 }
