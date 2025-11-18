@@ -33,37 +33,42 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           REPO=${{ github.repository }}
 
-          # Get current PR body
-          BODY=$(gh api repos/$REPO/pulls/$PR_NUMBER --jq '.body')
-
-          # If body is not null/empty, do nothing
-          if [ -n "$BODY" ] && [ "$BODY" != "null" ]; then
-            echo "PR already has a description. Skipping."
-            exit 0
-          fi
-
-          echo "PR has no description. Building one from commits..."
+          # Get current PR body; coalesce null -> empty string
+          BODY=$(gh api repos/"$REPO"/pulls/"$PR_NUMBER" --jq '.body // ""')
 
           # Get commits for this PR and format as bullet list
-          COMMITS=$(gh api repos/$REPO/pulls/$PR_NUMBER/commits --jq '.[].commit.message')
+          COMMITS=$(gh api repos/"$REPO"/pulls/"$PR_NUMBER"/commits --jq '.[].commit.message')
 
           if [ -z "$COMMITS" ]; then
             echo "No commits found for this PR. Skipping."
             exit 0
           fi
 
-          DESCRIPTION="## Changes in this PR\n\n"
+          # Start the description with real newlines
+          DESCRIPTION=$'## Changes in this PR\n\n'
 
           while IFS= read -r line; do
             # Skip empty lines
             [ -z "$line" ] && continue
-            DESCRIPTION+="- $line\n"
+            # Append bullet + real newline
+            DESCRIPTION+="- $line"$'\n'
           done <<< "$COMMITS"
 
-          echo -e "New description will be:\n$DESCRIPTION"
+          echo "Generated commit description:"
+          printf '%s\n' "$DESCRIPTION"
+
+          # Build final body: append to existing body if present
+          if [ -z "$BODY" ]; then
+            NEW_BODY="$DESCRIPTION"
+          else
+            NEW_BODY="$BODY"$'\n\n''=========================='$'\n\n'"$DESCRIPTION"
+          fi
+
+          echo "Final PR body to send:"
+          printf '%s\n' "$NEW_BODY"
 
           # Update the PR body
           gh api \
             --method PATCH \
-            repos/$REPO/pulls/$PR_NUMBER \
-            -f body="$DESCRIPTION"
+            "repos/$REPO/pulls/$PR_NUMBER" \
+            -f body="$NEW_BODY"
