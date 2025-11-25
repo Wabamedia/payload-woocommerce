@@ -98,15 +98,13 @@ function get_payload_customer_id() {
 
 		if ( ! $payload_customer_id && $user->user_email && $user->user_nicename ) {
 
-			// Check Payload for existing customer with this email
-			 if ( is_callable( [ Payload\Custome::class, 'filter_by' ] ) && class_exists( pl::class ) ) {
         $query = Payload\Customer::filter_by(
             pl::attr()->email->eq( $user->user_email )
         );
 
-        if ( is_object( $query ) && method_exists( $query, 'first' ) ) {
             $customer = $query->first();
-        }
+			$payload_customer_id = $customer->id ;
+        
 			}
 			else {
 							// Create new Payload customer
@@ -125,7 +123,7 @@ function get_payload_customer_id() {
 
 				update_user_meta( $user->ID, 'payload_customer_id', $payload_customer_id );
 		}
-	}
+	
 
 	return $payload_customer_id ?: null;
 }

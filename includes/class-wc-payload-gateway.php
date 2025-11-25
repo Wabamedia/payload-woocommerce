@@ -93,7 +93,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		$get_user_id_from_order = $this->get_order_customer_id($order);	
 
 		// Update subscription payment method
-		if (function_exists("wcs_is_subsciption") && wcs_is_subscription( $order_id ) ) {
+		if (wcs_is_subscription( $order_id ) ) {
 
 			if ( ! $_POST['payment_method_id'] ) {
 				throw new Exception( 'Missing payment method details' );
@@ -185,14 +185,14 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			}
 		}
 
-		//S	$payment->update( array( 'status' => 'processed' ) );	
-
-		if(isset($payment->status_code ) && $payment->status_code == 'approved' ){
+	
+		if($payment->status  == 'authorized' ){
 			$payment->update( array( 'status' => 'processed', "description"=> 'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id) ) );
 	
 				$order->payment_complete();
 				$order->save();
-		}
+		}	
+
 
 		// Redirect to the thank you page
 		return array(
