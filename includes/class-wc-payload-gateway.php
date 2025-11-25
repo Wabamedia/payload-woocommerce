@@ -92,8 +92,8 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 
 		$get_user_id_from_order = $this->get_order_customer_id($order);	
 
-		// Update subscription payment method
-		if (function_exists("wcs_is_subsciption") && wcs_is_subscription( $order_id ) ) {
+		// Update subscription payment method if wc subscription exists
+		if (function_exists('wcs_is_subscription') && wcs_is_subscription( $order_id ) ) {
 
 			if ( ! $_POST['payment_method_id'] ) {
 				throw new Exception( 'Missing payment method details' );
@@ -185,14 +185,14 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			}
 		}
 
-		//S	$payment->update( array( 'status' => 'processed' ) );	
-
-		if(isset($payment->status_code ) && $payment->status_code == 'approved' ){
+	
+		if($payment->status  == 'authorized' ){
 			$payment->update( array( 'status' => 'processed', "description"=> 'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id) ) );
 	
 				$order->payment_complete();
 				$order->save();
-		}
+		}	
+
 
 		// Redirect to the thank you page
 		return array(
@@ -307,7 +307,13 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			$token->set_user_id( get_current_user_id() );
 		}
 
-		$token->save();
+
+		if(!$this->check_if_card_exist( $token )){
+			$token->save();
+		}else{
+			$token = $this->check_if_card_exist( $token );
+		}
+
 
 		$pm = new Payload\PaymentMethod( array( 'id' => $payment_method['id'] ) );
 		$pm->update( array( 'attrs' => array( '_wp_token_id' => $token->get_id() ) ) );
@@ -343,10 +349,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 	return "";
 	}
 
-	// public function get_order_customer_id($order_id){
-	// 	$order = wc_get_order( $order_id );
-	// 	return $order->get_customer_id();
-	// }
+
 
 	public function set_customer_id_by_order($order){
 			$payload_customer_id = $order->get_meta( 'payload_customer_id', true );
@@ -406,5 +409,17 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
         return 0;
     }
 
+	public function check_if_card_exist( $token ) {
+			//Check if card exist
+		$chk_tokens = WC_Payment_Tokens::get_customer_tokens( $token->get_user_id(), $this->id );
+		foreach ( $chk_tokens as $chk_token ) {
+			if ( $chk_token->get_last4() == $token->get_last4() &&
+				 $chk_token->get_expiry_month() == $token->get_expiry_month() &&
+				 $chk_token->get_expiry_year() == $token->get_expiry_year() ) {
+				return $chk_token;	
+			}
+		}
+		return false;
+	}
 
 }

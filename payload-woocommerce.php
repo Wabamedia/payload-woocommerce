@@ -93,22 +93,26 @@ function get_payload_customer_id() {
 	$payload_customer_id = null;
 
 	$user = wp_get_current_user();
-	if ( $user ) {
+	if ( isset($user) && $user->ID != 0 ) {
+		
 		$payload_customer_id = get_user_meta( $user->ID, 'payload_customer_id', true );
+
+		if(!$payload_customer_id){
+
+			$customer = Payload\Customer::filter_by(
+				array("email"=>$user->user_email )
+			)->all();
+			
+				if(is_array($customer) && !empty($customer)){
+					$payload_customer_id = $customer[0]->id ;
+					update_user_meta( $user->ID, 'payload_customer_id', $payload_customer_id );
+					return $payload_customer_id;
+				}
+		}
 
 		if ( ! $payload_customer_id && $user->user_email && $user->user_nicename ) {
 
-			// Check Payload for existing customer with this email
-			 if ( is_callable( [ Payload\Custome::class, 'filter_by' ] ) && class_exists( pl::class ) ) {
-        $query = Payload\Customer::filter_by(
-            pl::attr()->email->eq( $user->user_email )
-        );
 
-        if ( is_object( $query ) && method_exists( $query, 'first' ) ) {
-            $customer = $query->first();
-        }
-			}
-			else {
 							// Create new Payload customer
 						$customer = Payload\Customer::create(
 							array(
@@ -125,7 +129,7 @@ function get_payload_customer_id() {
 
 				update_user_meta( $user->ID, 'payload_customer_id', $payload_customer_id );
 		}
-	}
+	
 
 	return $payload_customer_id ?: null;
 }
