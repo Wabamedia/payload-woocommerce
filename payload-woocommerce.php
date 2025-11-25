@@ -93,20 +93,25 @@ function get_payload_customer_id() {
 	$payload_customer_id = null;
 
 	$user = wp_get_current_user();
-	if ( $user ) {
+	if ( isset($user) && $user->ID != 0 ) {
+		
 		$payload_customer_id = get_user_meta( $user->ID, 'payload_customer_id', true );
+
+		if(!$payload_customer_id){
+
+			$customer = Payload\Customer::filter_by(
+				array("email"=>$user->user_email )
+			)->all();
+			
+				if(is_array($customer) && !empty($customer)){
+					$payload_customer_id = $customer[0]->id ;
+					update_user_meta( $user->ID, 'payload_customer_id', $payload_customer_id );
+				}
+		}
 
 		if ( ! $payload_customer_id && $user->user_email && $user->user_nicename ) {
 
-        $query = Payload\Customer::filter_by(
-            pl::attr()->email->eq( $user->user_email )
-        );
 
-            $customer = $query->first();
-			$payload_customer_id = $customer->id ;
-        
-			}
-			else {
 							// Create new Payload customer
 						$customer = Payload\Customer::create(
 							array(
