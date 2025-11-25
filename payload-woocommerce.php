@@ -106,6 +106,7 @@ function get_payload_customer_id() {
 				if(is_array($customer) && !empty($customer)){
 					$payload_customer_id = $customer[0]->id ;
 					update_user_meta( $user->ID, 'payload_customer_id', $payload_customer_id );
+					return $payload_customer_id;
 				}
 		}
 
