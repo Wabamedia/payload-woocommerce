@@ -29,6 +29,9 @@ class Test_Utility_Functions extends TestCase {
     }
 
     public function test_get_payload_customer_id_creates_new_customer() {
+        if (class_exists('Payload\\Customer')) {
+            \Payload\Customer::$shouldFindExisting = false;
+        }
         $user_mock = (object) [
             'ID' => 123,
             'user_email' => 'test@example.com',

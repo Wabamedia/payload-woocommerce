@@ -67,26 +67,21 @@ namespace Payload {
     
     class Customer {
         public $id;
+        public $customer;
          public static $shouldFindExisting = true;
 
         public static function create($data = array()) {
             $mock = new self();
-            $mock->id = 'cust_existing';
+            $mock->id = 'cust_123';
             return $mock;
         }
         public static function filter_by($data = array()) {
-            
-
+            $mock = new self();
             if (!self::$shouldFindExisting) {
-               // Simulate "no records found"
-                    return new class {
-                        public function first() {
-                            return null;
-                        }
-                };
+                $mock->id = null;
+                return $mock;
             }
 
-           $mock = new self();
             $mock->id = 'cust_123';
             return $mock;
         }
@@ -95,7 +90,15 @@ namespace Payload {
             return null;
         }
 
-        return $this;
+        return (object) array( 'id' => $this->id );
+        
+       }
+          public function all(){
+         if ($this->id === null) {
+            return array();
+        }
+
+        return array( (object) array( 'id' => $this->id ) );
         
        }
  
