@@ -2,7 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use Brain\Monkey;
-use Mockery;
+use Mockery as m;
 use Payload\API as pl;
 
 class Test_WC_Payload_Gateway extends TestCase {
