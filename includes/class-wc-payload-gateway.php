@@ -79,8 +79,8 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 
 	public function payment_fields() {
 		?>
-		<script>if(window.plMountPaymentMethodForm) window.plMountPaymentMethodForm()</script>
 		<div id="payload-add-payment-method"></div>
+		<script>if(window.plMountPaymentMethodForm) window.plMountPaymentMethodForm()</script>
 		<?php
 	}
 

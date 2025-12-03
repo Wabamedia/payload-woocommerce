@@ -249,76 +249,116 @@ const mountPaymentMethodForm = () => {
 		const domContainer = document.querySelector(
 			'#payload-add-payment-method'
 		);
-
+		//console.log('[payload] Mounting payment method form into', domContainer);
 		const root = ReactDOM.createRoot( domContainer );
 		root.render( <AddPaymentMethod /> );
 	}
 };
 
-// Lazy + safe mount for the payment method form
+// Expose a single global that mounts the payment form ONCE
+// Expose a single global that mounts the payment form (handles lazy / re-renders)
 window.plMountPaymentMethodForm = ( () => {
-	const TARGET_SELECTOR = '#payload-add-payment-method'; // Adjust this selector as needed
-	let mounted = false;
-	let attempted = false;
+	const TARGET_SELECTOR = '#payload-add-payment-method';
 
-	const tryMount = () => {
-		if ( mounted ) {
-			return true;
-		}
+	let mountedContainer = null; // track which exact element we mounted into
+	let pending = false;
+	let observer = null;
 
-		const container = document.querySelector( TARGET_SELECTOR );
+	// --- helpers -------------------------------------------------------------
+
+	const actuallyMount = ( container ) => {
 		if ( ! container ) {
-			return false;
+			return;
 		}
 
-		// If your mount function accepts a container, pass it in:
+		// If we already mounted into this exact DOM node and it's still in the DOM, do nothing.
+		if (
+			mountedContainer === container &&
+			document.body.contains( container )
+		) {
+			return;
+		}
+
+		// If your function can take a container, pass it in:
 		// mountPaymentMethodForm(container);
 		mountPaymentMethodForm();
 
-		mounted = true;
-		return true;
+		mountedContainer = container;
 	};
 
-	const lazyInit = () => {
-		if ( attempted ) {
+	const cleanup = () => {
+		// We only remove the load listener so it doesn't fire again.
+		// We deliberately KEEP the observer so we can survive checkout re-renders.
+		window.removeEventListener( 'load', onLoad );
+	};
+
+	const onLoad = () => {
+		const container = document.querySelector( TARGET_SELECTOR );
+
+		// If we have a container or had previously found it (pending), mount now.
+		if ( container || pending ) {
+			actuallyMount(
+				container || document.querySelector( TARGET_SELECTOR )
+			);
+			cleanup();
+		}
+	};
+
+	const handleFound = ( container ) => {
+		// Normalize: if caller passed `true` before, just re-query the DOM
+		if ( ! container || container.nodeType !== 1 ) {
+			container = document.querySelector( TARGET_SELECTOR );
+		}
+		if ( ! container ) {
 			return;
 		}
-		attempted = true;
 
-		// 1) Try immediately (DOM might already be ready)
-		if ( tryMount() ) {
+		// If everything is fully loaded, mount immediately
+		if ( document.readyState === 'complete' ) {
+			actuallyMount( container );
+			// DO NOT clean up the observer here – we want to handle later re-renders
 			return;
 		}
 
-		// 2) Observe DOM changes for late-inserted form
-		const observer = new MutationObserver( () => {
-			if ( tryMount() ) {
-				observer.disconnect();
+		// DOM seen but page not fully loaded yet:
+		// mark as pending and let onLoad() do the actual mount.
+		pending = true;
+	};
+
+	const initObserver = () => {
+		if ( observer ) {
+			return;
+		}
+
+		observer = new MutationObserver( () => {
+			// On any DOM change, see if our container exists and handle it
+			const container = document.querySelector( TARGET_SELECTOR );
+			if ( container ) {
+				handleFound( container );
 			}
 		} );
 
-		observer.observe( document.documentElement, {
+		observer.observe( document.documentElement || document.body, {
 			childList: true,
 			subtree: true,
 		} );
-
-		// 3) Fallback timeout so we don't observe forever
-		setTimeout( () => {
-			observer.disconnect();
-		}, 15000 ); // 15s safety cap
 	};
 
-	return () => {
-		if ( document.readyState === 'loading' ) {
-			// DOM not ready yet → wait for it, then run lazy init
-			document.addEventListener( 'DOMContentLoaded', lazyInit, {
-				once: true,
-			} );
-		} else {
-			// DOM is already ready → start lazy init now
-			lazyInit();
+	const init = () => {
+		// First, if the container already exists, handle it
+		const container = document.querySelector( TARGET_SELECTOR );
+		if ( container ) {
+			handleFound( container );
 		}
+
+		// Ensure we mount after all assets are loaded (good for lazy templates)
+		window.addEventListener( 'load', onLoad, { once: true } );
+
+		// Watch for dynamic / lazy-loaded injection of the target container
+		initObserver();
 	};
+
+	return init;
 } )();
 
 window.plMountPaymentMethodForm();
