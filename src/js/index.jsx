@@ -14,14 +14,14 @@ import '../css/style.scss';
 const { registerPaymentMethod } = window.wc.wcBlocksRegistry;
 const { getSetting } = window.wc.wcSettings;
 
-const settings = getSetting('payload', {});
+const settings = getSetting( 'payload', {} );
 const label =
-	decodeEntities(settings.title) ||
-	window.wp.i18n.__('Credit/Debit Card', 'payload');
+	decodeEntities( settings.title ) ||
+	window.wp.i18n.__( 'Credit/Debit Card', 'payload' );
 
 const PaymentMethodFields = () => {
-	const [nameInvalidMessage, setNameInvalidMessage] = useState();
-	const [cardInvalidMessage, setCardInvalidMessage] = useState();
+	const [ nameInvalidMessage, setNameInvalidMessage ] = useState();
+	const [ cardInvalidMessage, setCardInvalidMessage ] = useState();
 
 	return (
 		<div className="pl-form-container">
@@ -36,12 +36,12 @@ const PaymentMethodFields = () => {
 					id="payload-account-holder"
 					attr="account_holder"
 					placeholder="First and last"
-					onInvalid={(evt) => {
-						setNameInvalidMessage(evt.message);
-					}}
-					onValid={() => setNameInvalidMessage(null)}
+					onInvalid={ ( evt ) => {
+						setNameInvalidMessage( evt.message );
+					} }
+					onValid={ () => setNameInvalidMessage( null ) }
 				/>
-				<div className="pl-invalid-hint">{nameInvalidMessage}</div>
+				<div className="pl-invalid-hint">{ nameInvalidMessage }</div>
 			</div>
 			<div className="pl-form-control">
 				<label className="pl-input-label" htmlFor="payload-card">
@@ -50,30 +50,30 @@ const PaymentMethodFields = () => {
 				<Card
 					id="payload-card"
 					className="payload-card-input"
-					onInvalid={(evt) => {
-						setCardInvalidMessage(evt.message);
-					}}
-					onValid={() => setCardInvalidMessage(null)}
+					onInvalid={ ( evt ) => {
+						setCardInvalidMessage( evt.message );
+					} }
+					onValid={ () => setCardInvalidMessage( null ) }
 				/>
-				<div className="pl-invalid-hint">{cardInvalidMessage}</div>
+				<div className="pl-invalid-hint">{ cardInvalidMessage }</div>
 			</div>
 		</div>
 	);
 };
 
-const Content = (props) => {
+const Content = ( props ) => {
 	const { eventRegistration, emitResponse, billing } = props;
 	const { onPaymentSetup } = eventRegistration;
-	const [clientToken, setClientToken] = useState();
-	const paymentFormRef = useRef(null);
-	const hasSubscription = !!props.cartData.extensions?.subscriptions?.length;
+	const [ clientToken, setClientToken ] = useState();
+	const paymentFormRef = useRef( null );
+	const hasSubscription = !! props.cartData.extensions?.subscriptions?.length;
 
-	useEffect(() => {
-		wp.apiFetch({ path: 'wc/v3/payload_client_token' }).then((data) =>
-			setClientToken(data.client_token)
+	useEffect( () => {
+		wp.apiFetch( { path: 'wc/v3/payload_client_token' } ).then( ( data ) =>
+			setClientToken( data.client_token )
 		);
 
-		const unsubscribe = onPaymentSetup(async () => {
+		const unsubscribe = onPaymentSetup( async () => {
 			try {
 				const result = await paymentFormRef.current.submit();
 				return {
@@ -84,9 +84,9 @@ const Content = (props) => {
 						},
 					},
 				};
-			} catch (e) {
+			} catch ( e ) {
 				let errorMessage;
-				if (e.data?.error_type !== 'InvalidAttributes') {
+				if ( e.data?.error_type !== 'InvalidAttributes' ) {
 					errorMessage = e.data?.error_description;
 				}
 
@@ -95,7 +95,7 @@ const Content = (props) => {
 					message: errorMessage ?? 'There was an error',
 				};
 			}
-		});
+		} );
 
 		// Unsubscribes when this component is unmounted.
 		return () => {
@@ -105,22 +105,22 @@ const Content = (props) => {
 		emitResponse.responseTypes.ERROR,
 		emitResponse.responseTypes.SUCCESS,
 		onPaymentSetup,
-	]);
+	] );
 
 	return (
 		<>
-			{decodeEntities(settings.description || '')}
+			{ decodeEntities( settings.description || '' ) }
 			<PaymentForm
-				ref={paymentFormRef}
-				clientToken={clientToken}
-				styles={{ invalid: 'pl-input-invalid' }}
-				preventDefaultOnSubmit={true}
-				payment={{
+				ref={ paymentFormRef }
+				clientToken={ clientToken }
+				styles={ { invalid: 'pl-input-invalid' } }
+				preventDefaultOnSubmit={ true }
+				payment={ {
 					amount: billing.cartTotal.value / 100,
 					payment_method: {
 						keep_active: hasSubscription,
 					},
-				}}
+				} }
 			>
 				<PaymentMethodFields />
 			</PaymentForm>
@@ -129,39 +129,39 @@ const Content = (props) => {
 };
 
 const AddPaymentMethod = () => {
-	const [clientToken, setClientToken] = useState();
-	const [paymentMethodId, setPaymentMethodId] = useState();
-	const [generalErrorMessage, setGeneralErrorMessage] = useState();
-	const addPaymentPaymentFormRef = useRef(null);
+	const [ clientToken, setClientToken ] = useState();
+	const [ paymentMethodId, setPaymentMethodId ] = useState();
+	const [ generalErrorMessage, setGeneralErrorMessage ] = useState();
+	const addPaymentPaymentFormRef = useRef( null );
 
 	const getForm = () => {
 		return (
-			document.getElementById('order_review') ??
-			document.getElementById('add_payment_method')
+			document.getElementById( 'order_review' ) ??
+			document.getElementById( 'add_payment_method' )
 		);
 	};
 
-	useEffect(() => {
-		wp.apiFetch({
+	useEffect( () => {
+		wp.apiFetch( {
 			path: 'wc/v3/payload_client_token?type=payment_method',
-		}).then((data) => setClientToken(data.client_token));
+		} ).then( ( data ) => setClientToken( data.client_token ) );
 
 		const form = getForm();
-		const submitBtn = document.getElementById('place_order');
+		const submitBtn = document.getElementById( 'place_order' );
 
-		const preventDefault = (evt) => {
+		const preventDefault = ( evt ) => {
 			evt.preventDefault();
 		};
 
-		const submitPayloadForm = async (evt) => {
+		const submitPayloadForm = async ( evt ) => {
 			evt.preventDefault();
 
 			try {
 				const result = await addPaymentPaymentFormRef.current.submit();
-				setPaymentMethodId(result.payment_method_id);
+				setPaymentMethodId( result.payment_method_id );
 				removeListeners();
-			} catch (e) {
-				if (e.data?.error_type !== 'InvalidAttributes') {
+			} catch ( e ) {
+				if ( e.data?.error_type !== 'InvalidAttributes' ) {
 					setGeneralErrorMessage(
 						e.data?.error_description ?? 'There was an error'
 					);
@@ -170,48 +170,48 @@ const AddPaymentMethod = () => {
 		};
 
 		const removeListeners = () => {
-			form.removeEventListener('submit', preventDefault);
-			submitBtn.removeEventListener('click', submitPayloadForm);
+			form.removeEventListener( 'submit', preventDefault );
+			submitBtn.removeEventListener( 'click', submitPayloadForm );
 		};
 
-		form.addEventListener('submit', preventDefault);
-		submitBtn.addEventListener('click', submitPayloadForm);
+		form.addEventListener( 'submit', preventDefault );
+		submitBtn.addEventListener( 'click', submitPayloadForm );
 
 		return removeListeners;
-	}, []);
+	}, [] );
 
-	useEffect(() => {
-		if (paymentMethodId) {
-			const submitBtn = document.getElementById('place_order');
+	useEffect( () => {
+		if ( paymentMethodId ) {
+			const submitBtn = document.getElementById( 'place_order' );
 			submitBtn.click();
 		}
-	}, [paymentMethodId]);
+	}, [ paymentMethodId ] );
 
 	return (
 		<>
 			<PaymentMethodForm
-				ref={addPaymentPaymentFormRef}
-				clientToken={clientToken}
-				styles={{ invalid: 'pl-input-invalid' }}
-				preventDefaultOnSubmit={true}
+				ref={ addPaymentPaymentFormRef }
+				clientToken={ clientToken }
+				styles={ { invalid: 'pl-input-invalid' } }
+				preventDefaultOnSubmit={ true }
 			>
-				{!!generalErrorMessage && (
-					<div className="pl-form-error">{generalErrorMessage}</div>
-				)}
+				{ !! generalErrorMessage && (
+					<div className="pl-form-error">{ generalErrorMessage }</div>
+				) }
 				<PaymentMethodFields />
 			</PaymentMethodForm>
 			<input
 				type="hidden"
 				name="payment_method_id"
-				value={paymentMethodId}
+				value={ paymentMethodId }
 			/>
 		</>
 	);
 };
 
-const Label = (props) => {
+const Label = ( props ) => {
 	const { PaymentMethodLabel } = props.components;
-	return <PaymentMethodLabel text={label} />;
+	return <PaymentMethodLabel text={ label } />;
 };
 
 const BlockGateway = {
@@ -242,22 +242,22 @@ const BlockGateway = {
 	},
 };
 
-registerPaymentMethod(BlockGateway);
+registerPaymentMethod( BlockGateway );
 
 const mountPaymentMethodForm = () => {
-	if (document.querySelector('#payload-add-payment-method')) {
+	if ( document.querySelector( '#payload-add-payment-method' ) ) {
 		const domContainer = document.querySelector(
 			'#payload-add-payment-method'
 		);
 		//console.log('[payload] Mounting payment method form into', domContainer);
-		const root = ReactDOM.createRoot(domContainer);
-		root.render(<AddPaymentMethod />);
+		const root = ReactDOM.createRoot( domContainer );
+		root.render( <AddPaymentMethod /> );
 	}
 };
 
 // Expose a single global that mounts the payment form ONCE
 // Expose a single global that mounts the payment form (handles lazy / re-renders)
-window.plMountPaymentMethodForm = (() => {
+window.plMountPaymentMethodForm = ( () => {
 	const TARGET_SELECTOR = '#payload-add-payment-method';
 
 	let mountedContainer = null; // track which exact element we mounted into
@@ -266,15 +266,18 @@ window.plMountPaymentMethodForm = (() => {
 
 	// --- helpers -------------------------------------------------------------
 
-	const actuallyMount = (container) => {
-		if (!container) return;
-
-		// If we already mounted into this exact DOM node and it's still in the DOM, do nothing.
-		if (mountedContainer === container && document.body.contains(container)) {
+	const actuallyMount = ( container ) => {
+		if ( ! container ) {
 			return;
 		}
 
-		console.log('[payload] Mounting payment method form into', container);
+		// If we already mounted into this exact DOM node and it's still in the DOM, do nothing.
+		if (
+			mountedContainer === container &&
+			document.body.contains( container )
+		) {
+			return;
+		}
 
 		// If your function can take a container, pass it in:
 		// mountPaymentMethodForm(container);
@@ -286,29 +289,33 @@ window.plMountPaymentMethodForm = (() => {
 	const cleanup = () => {
 		// We only remove the load listener so it doesn't fire again.
 		// We deliberately KEEP the observer so we can survive checkout re-renders.
-		window.removeEventListener('load', onLoad);
+		window.removeEventListener( 'load', onLoad );
 	};
 
 	const onLoad = () => {
-		const container = document.querySelector(TARGET_SELECTOR);
+		const container = document.querySelector( TARGET_SELECTOR );
 
 		// If we have a container or had previously found it (pending), mount now.
-		if (container || pending) {
-			actuallyMount(container || document.querySelector(TARGET_SELECTOR));
+		if ( container || pending ) {
+			actuallyMount(
+				container || document.querySelector( TARGET_SELECTOR )
+			);
 			cleanup();
 		}
 	};
 
-	const handleFound = (container) => {
+	const handleFound = ( container ) => {
 		// Normalize: if caller passed `true` before, just re-query the DOM
-		if (!(container instanceof Element)) {
-			container = document.querySelector(TARGET_SELECTOR);
+		if ( ! container || container.nodeType !== 1 ) {
+			container = document.querySelector( TARGET_SELECTOR );
 		}
-		if (!container) return;
+		if ( ! container ) {
+			return;
+		}
 
 		// If everything is fully loaded, mount immediately
-		if (document.readyState === 'complete') {
-			actuallyMount(container);
+		if ( document.readyState === 'complete' ) {
+			actuallyMount( container );
 			// DO NOT clean up the observer here – we want to handle later re-renders
 			return;
 		}
@@ -319,38 +326,39 @@ window.plMountPaymentMethodForm = (() => {
 	};
 
 	const initObserver = () => {
-		if (observer) return;
+		if ( observer ) {
+			return;
+		}
 
-		observer = new MutationObserver(() => {
+		observer = new MutationObserver( () => {
 			// On any DOM change, see if our container exists and handle it
-			const container = document.querySelector(TARGET_SELECTOR);
-			if (container) {
-				handleFound(container);
+			const container = document.querySelector( TARGET_SELECTOR );
+			if ( container ) {
+				handleFound( container );
 			}
-		});
+		} );
 
-		observer.observe(document.documentElement || document.body, {
+		observer.observe( document.documentElement || document.body, {
 			childList: true,
 			subtree: true,
-		});
+		} );
 	};
 
 	const init = () => {
 		// First, if the container already exists, handle it
-		const container = document.querySelector(TARGET_SELECTOR);
-		if (container) {
-			handleFound(container);
+		const container = document.querySelector( TARGET_SELECTOR );
+		if ( container ) {
+			handleFound( container );
 		}
 
 		// Ensure we mount after all assets are loaded (good for lazy templates)
-		window.addEventListener('load', onLoad, { once: true });
+		window.addEventListener( 'load', onLoad, { once: true } );
 
 		// Watch for dynamic / lazy-loaded injection of the target container
 		initObserver();
 	};
 
 	return init;
-})();
-
+} )();
 
 window.plMountPaymentMethodForm();
