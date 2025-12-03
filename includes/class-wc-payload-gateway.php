@@ -336,7 +336,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 
 	public function get_order_product_name($order_id){
 		$order = wc_get_order( $order_id );
-		if(isset($order->get_items)){
+		if(!empty($order)){
 				$items = $order->get_items();
 				$product_names = array();
 

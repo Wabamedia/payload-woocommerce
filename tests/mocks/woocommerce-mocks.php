@@ -84,6 +84,7 @@ class WC_Order {
     public function get_payment_method() { return $this->data['payment_method']; }
     public function get_payment_method_title() { return $this->data['payment_method_title']; }
     public function get_payment_tokens() { return array(1); }
+    public function get_items() { return array(); }
     
     public function set_transaction_id($id) { $this->data['transaction_id'] = $id; }
     public function set_payment_method($method) { $this->data['payment_method'] = $method; }
