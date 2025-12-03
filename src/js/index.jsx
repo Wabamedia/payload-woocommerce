@@ -255,70 +255,45 @@ const mountPaymentMethodForm = () => {
 	}
 };
 
-// Lazy + safe mount for the payment method form
-window.plMountPaymentMethodForm = ( () => {
-	const TARGET_SELECTOR = '#payload-add-payment-method'; // Adjust this selector as needed
-	let mounted = false;
-	let attempted = false;
+// Expose a single global that mounts the payment form ONCE
+window.plMountPaymentMethodForm = (() => {
+    const TARGET_SELECTOR = '#payload-add-payment-method';
+    let mounted = false;
 
-	const tryMount = () => {
-		if ( mounted ) {
-			return true;
-		}
+    const mountOnce = () => {
+        // Already mounted → do nothing
+        if (mounted) {
+            return;
+        }
 
-		const container = document.querySelector( TARGET_SELECTOR );
-		if ( ! container ) {
-			return false;
-		}
+        const container = document.querySelector(TARGET_SELECTOR);
 
-		// If your mount function accepts a container, pass it in:
-		// mountPaymentMethodForm(container);
-		mountPaymentMethodForm();
+        if (!container) {
+           // console.warn('[payload] Target container not found:', TARGET_SELECTOR);
+            return;
+        }
 
-		mounted = true;
-		return true;
-	};
+       // console.log('[payload] Mounting payment method form into', container);
 
-	const lazyInit = () => {
-		if ( attempted ) {
-			return;
-		}
-		attempted = true;
+        // IMPORTANT: if your mount function accepts a container, pass it in
+        // mountPaymentMethodForm(container);
+        mountPaymentMethodForm();
 
-		// 1) Try immediately (DOM might already be ready)
-		if ( tryMount() ) {
-			return;
-		}
+        mounted = true;
+    };
 
-		// 2) Observe DOM changes for late-inserted form
-		const observer = new MutationObserver( () => {
-			if ( tryMount() ) {
-				observer.disconnect();
-			}
-		} );
+    const init = () => {
+        if (document.readyState === 'loading') {
+            // DOM not ready yet, wait for it
+          //  document.addEventListener('DOMContentLoaded', mountOnce, { once: true });
+        } else {
+            // DOM ready, try immediately
+            mountOnce();
+        }
+    };
 
-		observer.observe( document.documentElement, {
-			childList: true,
-			subtree: true,
-		} );
-
-		// 3) Fallback timeout so we don't observe forever
-		setTimeout( () => {
-			observer.disconnect();
-		}, 15000 ); // 15s safety cap
-	};
-
-	return () => {
-		if ( document.readyState === 'loading' ) {
-			// DOM not ready yet → wait for it, then run lazy init
-			document.addEventListener( 'DOMContentLoaded', lazyInit, {
-				once: true,
-			} );
-		} else {
-			// DOM is already ready → start lazy init now
-			lazyInit();
-		}
-	};
-} )();
+    // The global function you call elsewhere
+    return init;
+})();
 
 window.plMountPaymentMethodForm();

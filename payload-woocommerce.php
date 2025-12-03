@@ -98,7 +98,7 @@ function get_payload_customer_id() {
 		$payload_customer_id = get_user_meta( $user->ID, 'payload_customer_id', true );
 	}
 
-		if(!$payload_customer_id && !empty($user)){
+		if(!$payload_customer_id && !empty($user) && $user->user_email){
 
 			$customer = Payload\Customer::filter_by(
 				array("email"=>$user->user_email )
