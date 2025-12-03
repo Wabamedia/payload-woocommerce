@@ -55,24 +55,14 @@ jobs:
           mkdir -p "$OUTDIR"
           ZIPFILE="$OUTDIR/${TAG}.zip"
 
-          # Collect only existing folders
-          CONTENTS=""
-          [ -d vendor ] && CONTENTS="$CONTENTS vendor"
-          [ -d node_modules ] && CONTENTS="$CONTENTS node_modules"
-          [ -d build ] && CONTENTS="$CONTENTS build"
+          # Zip the full project (including vendor, node_modules, build, etc.)
+          # Exclude git metadata, GitHub workflows, and the release folder itself
+          zip -r "$ZIPFILE" . \
+            -x ".git/*" ".github/*" "release/*"
 
-          if [ -z "$CONTENTS" ]; then
-            echo "No vendor/node_modules/build folders found to include in zip."
-            echo "zip_created=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          zip -r "$ZIPFILE" $CONTENTS
           echo "zip_path=$ZIPFILE" >> $GITHUB_OUTPUT
-          echo "zip_created=true" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release + upload ZIP
-        if: steps.make_zip.outputs.zip_created == 'true'
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
