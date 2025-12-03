@@ -187,7 +187,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 
 	
 		if($payment->status  == 'authorized' ){
-			$payment->update( array( 'status' => 'processed', "description"=> 'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id) ) );
+			$payment->update( array('order_number'=>strval( $order_id),  'status' => 'processed', "description"=> 'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id) ) );
 	
 				$order->payment_complete();
 				$order->save();
@@ -287,7 +287,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			$order->save();
 		
 	//	}
-			$payment->update( array( 'status' => 'processed', "description"=> 'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id) ) );
+			$payment->update( array( 'order_number'=>strval( $order_id), 'status' => 'processed', "description"=> 'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id) ) );
 	
 		return $payment;
 	}
