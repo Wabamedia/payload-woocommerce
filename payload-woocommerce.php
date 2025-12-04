@@ -183,7 +183,6 @@ add_action(
 
 function setup_payload_api() {
 	$settings = get_option( 'woocommerce_payload_settings', array() );
-
 	pl::$api_key = $settings['api_key'];
 	if ( getenv( 'PAYLOAD_API_URL' ) ) {
 		pl::$api_url = getenv( 'PAYLOAD_API_URL' );
