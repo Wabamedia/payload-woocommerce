@@ -32,7 +32,6 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, array( $this, 'scheduled_subscription_payment' ), 10, 2 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
-//		$this->__testpayloadgateway();
 	}
 
 	public function init_form_fields() {
@@ -271,7 +270,7 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 	public function create_payment_for_order( $order, $amount, $payment_method_id ) {
 		$order_id =  $order->get_id();
 		$payment_array = array(
-				'description'       =>  'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id),
+				'description'       =>  " Order Item(s): ".$this->get_order_product_name($order_id),
 				'amount'            => $amount,
 				'type'              => 'payment',
 				'payment_method_id' => $payment_method_id,
@@ -281,16 +280,23 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 			$payment_array
 		);
 
-		$order->set_transaction_id( $payment->ref_number );
-	//	if( $this->is_virtual($order_id)){
-			$order->payment_complete();
-			$order->save();
-		
-	//	}
-			$payment->update( array( 'order_number'=>strval( $order_id), 'status' => 'processed', "description"=> 'Payment for order #' . $order_id." related to  Product: ".$this->get_order_product_name($order_id) ) );
-	
+		$payment = $this->handle_order_payment( $order, $payment );
 		return $payment;
 	}
+
+	public function handle_order_payment( $order, $payment ) {
+    $order->set_transaction_id( $payment->ref_number );
+    if($payment->status  == 'authorized' ){
+        $payment->update( array('order_number'=>strval( $order_id),  'status' => 'processed', "description"=> " Order Item(s): ".$this->get_order_product_name($order_id) ) );
+    }
+    if ($payment->status  == 'processed' && $this->is_virtual($order_id)){
+			$order->payment_complete();
+			
+    }
+	$order->save();
+
+	return $payment;
+}
 
 	public function create_token( $payment_method,$set_current_user=null ) {
 		$token = new WC_Payment_Token_CC();
@@ -327,11 +333,11 @@ class WC_Payload_Gateway extends WC_Payment_Gateway {
 		$items = $order->get_items();
 
 		foreach ( $items as $item ) {
-			if ( $item->get_product()->is_virtual() ) {
-				return true;
+			if ( !$item->get_product()->is_virtual() ) {
+				return false;
 			}
 		}
-		return false;
+		return true;
 	}
 
 	public function get_order_product_name($order_id){

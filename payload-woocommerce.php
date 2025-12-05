@@ -17,6 +17,8 @@ require_once 'vendor/autoload.php';
 use Payload\API as pl;
 
 
+
+
 add_action( 'plugins_loaded', 'woocommerce_payload', 0 );
 function woocommerce_payload() {
 	if ( ! class_exists( 'WC_Payment_Gateway' ) ) {

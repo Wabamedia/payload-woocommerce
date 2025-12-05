@@ -249,7 +249,7 @@ const mountPaymentMethodForm = () => {
 		const domContainer = document.querySelector(
 			'#payload-add-payment-method'
 		);
-		//console.log('[payload] Mounting payment method form into', domContainer);
+	
 		const root = ReactDOM.createRoot( domContainer );
 		root.render( <AddPaymentMethod /> );
 	}
@@ -296,19 +296,16 @@ window.plMountPaymentMethodForm = ( () => {
 		const container = document.querySelector( TARGET_SELECTOR );
 
 		// If we have a container or had previously found it (pending), mount now.
-		if ( container || pending ) {
+		if ( container || (pending && container) ) {
 			actuallyMount(
-				container || document.querySelector( TARGET_SELECTOR )
+				container 
 			);
 			cleanup();
 		}
 	};
 
 	const handleFound = ( container ) => {
-		// Normalize: if caller passed `true` before, just re-query the DOM
-		if ( ! container || container.nodeType !== 1 ) {
-			container = document.querySelector( TARGET_SELECTOR );
-		}
+	
 		if ( ! container ) {
 			return;
 		}
